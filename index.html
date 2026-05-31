@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyTunes</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- CONFIG MODAL -->
+  <div id="config-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-logo">♫</div>
+      <h2>MyTunes</h2>
+      <p>Inserisci il tuo repository GitHub per caricare la libreria musicale.</p>
+      <div class="input-group">
+        <label>Username GitHub</label>
+        <input type="text" id="gh-user" placeholder="es: johndoe" />
+      </div>
+      <div class="input-group">
+        <label>Nome Repository</label>
+        <input type="text" id="gh-repo" placeholder="es: music-repo" />
+      </div>
+      <div class="input-group">
+        <label>Cartella base <span class="hint">(default: music)</span></label>
+        <input type="text" id="gh-path" placeholder="music" value="music" />
+      </div>
+      <div class="input-group">
+        <label>Token GitHub <span class="hint">(opzionale, aumenta rate limit)</span></label>
+        <input type="password" id="gh-token" placeholder="ghp_..." />
+      </div>
+      <button id="load-btn" class="btn-primary">Carica Libreria</button>
+      <div id="modal-error" class="error-msg hidden"></div>
+    </div>
+  </div>
+
+  <!-- APP SHELL -->
+  <div id="app" class="hidden">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-mark">♫</span>
+        <span class="logo-text">MyTunes</span>
+        <button id="settings-btn" class="icon-btn" title="Impostazioni">⚙</button>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">LIBRERIA</div>
+        <button class="nav-item active" id="nav-artists" onclick="showView('artists')">
+          <span class="nav-icon">👤</span> Artisti
+        </button>
+        <button class="nav-item" id="nav-queue" onclick="showView('queue')">
+          <span class="nav-icon">≡</span> In riproduzione
+        </button>
+      </div>
+
+      <div class="breadcrumb-nav" id="breadcrumb"></div>
+
+      <div class="sidebar-footer">
+        <div id="mini-player" class="mini-player hidden">
+          <div class="mini-cover" id="mini-cover"></div>
+          <div class="mini-info">
+            <div class="mini-title" id="mini-title">—</div>
+            <div class="mini-artist" id="mini-artist">—</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-content">
+      <div id="view-artists" class="view active">
+        <div class="view-header">
+          <h1 id="artists-heading">Artisti</h1>
+          <div class="search-wrap">
+            <input type="search" id="search-input" placeholder="Cerca…" oninput="filterItems()" />
+          </div>
+        </div>
+        <div id="artists-grid" class="card-grid"></div>
+      </div>
+
+      <div id="view-albums" class="view">
+        <div class="view-header">
+          <button class="back-btn" onclick="showView('artists')">← Artisti</button>
+          <h1 id="albums-heading"></h1>
+        </div>
+        <div id="albums-grid" class="card-grid"></div>
+      </div>
+
+      <div id="view-tracks" class="view">
+        <div class="view-header album-header">
+          <button class="back-btn" id="back-to-albums">← Album</button>
+          <div class="album-hero">
+            <div class="album-cover-lg" id="track-cover"></div>
+            <div class="album-meta">
+              <div class="album-meta-artist" id="track-artist-name"></div>
+              <h1 id="tracks-heading"></h1>
+              <div class="album-meta-count" id="track-count"></div>
+              <button class="btn-play-all" id="play-all-btn">▶ Riproduci tutto</button>
+            </div>
+          </div>
+        </div>
+        <div id="tracks-list" class="tracks-list"></div>
+      </div>
+
+      <div id="view-queue" class="view">
+        <div class="view-header">
+          <h1>In riproduzione</h1>
+        </div>
+        <div id="queue-list" class="tracks-list"></div>
+      </div>
+    </main>
+
+    <!-- PLAYER BAR -->
+    <footer id="player-bar">
+      <div class="player-left">
+        <div class="player-cover" id="player-cover"></div>
+        <div class="player-track-info">
+          <div class="player-track-title" id="player-title">Nessuna traccia</div>
+          <div class="player-track-artist" id="player-artist">—</div>
+        </div>
+      </div>
+
+      <div class="player-center">
+        <div class="player-controls">
+          <button class="ctrl-btn" id="btn-shuffle" title="Shuffle" onclick="toggleShuffle()">⇄</button>
+          <button class="ctrl-btn" id="btn-prev" onclick="prevTrack()">⏮</button>
+          <button class="ctrl-btn play-pause" id="btn-play" onclick="togglePlay()">▶</button>
+          <button class="ctrl-btn" id="btn-next" onclick="nextTrack()">⏭</button>
+          <button class="ctrl-btn" id="btn-repeat" title="Repeat" onclick="toggleRepeat()">↻</button>
+        </div>
+        <div class="progress-wrap">
+          <span class="time-label" id="time-current">0:00</span>
+          <div class="progress-bar" id="progress-bar" onclick="seekTo(event)">
+            <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-thumb" id="progress-thumb"></div>
+          </div>
+          <span class="time-label" id="time-total">0:00</span>
+        </div>
+      </div>
+
+      <div class="player-right">
+        <span class="vol-icon">🔊</span>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.8" oninput="setVolume(this.value)" />
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="modal-overlay hidden">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <p id="loading-msg">Caricamento libreria…</p>
+    </div>
+  </div>
+
+  <audio id="audio-engine"></audio>
+  <script src="script.js"></script>
+</body>
+</html>
